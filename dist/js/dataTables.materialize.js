@@ -10,6 +10,7 @@
  * controls using Bootstrap. See http://datatables.net/manual/styling/bootstrap
  * for further information.
  */
+
 (function( factory ){
 	if ( typeof define === 'function' && define.amd ) {
 		// AMD
@@ -42,18 +43,145 @@
 'use strict';
 var DataTable = $.fn.dataTable;
 
+/**
+ * This pagination plug-in provides a `dt-tag select` menu with the list of the page
+ * numbers that are available for viewing.
+ *
+ *  @name Select list
+ *  @summary Show a `dt-tag select` list of pages the user can pick from.
+ *  @author _jneilliii_
+ *
+ *  @example
+ *    $(document).ready(function() {
+ *        $('#example').dataTable( {
+ *            "sPaginationType": "listbox"
+ *        } );
+ *    } );
+ */
+
+$.fn.dataTableExt.oPagination.listbox = {
+    /*
+     * Function: oPagination.listbox.fnInit
+     * Purpose:  Initalise dom elements required for pagination with listbox input
+     * Returns:  -
+     * Inputs:   object:oSettings - dataTables settings object
+     *             node:nPaging - the DIV which contains this pagination control
+     *             function:fnCallbackDraw - draw function which must be called on update
+     */
+    "fnInit": function (oSettings, nPaging, fnCallbackDraw) {
+        var nInput = document.createElement('select');
+        var nPage = document.createElement('label');
+        var nOf = document.createElement('label');
+        nOf.className = "paginate_of";
+
+        nPage.className = "paginate_page";
+        if (oSettings.sTableId !== '') {
+            nPaging.setAttribute('id', oSettings.sTableId + '_paginate');
+        }
+        nInput.style.display = "inline";
+        nInput.style.width = 'initial';
+        nPage.innerHTML = "Page ";
+        nPaging.appendChild(nPage);
+        nPaging.appendChild(nInput);
+        nPaging.appendChild(nOf);
+        $(nInput).change(function (e) { // Set DataTables page property and redraw the grid on listbox change event.
+            window.scroll(0,0); //scroll to top of pagem
+            if (this.value === "" || this.value.match(/[^0-9]/)) { /* Nothing entered or non-numeric character */
+                return;
+            }
+            var iNewStart = oSettings._iDisplayLength * (this.value - 1);
+            if (iNewStart > oSettings.fnRecordsDisplay()) { /* Display overrun */
+                oSettings._iDisplayStart = (Math.ceil((oSettings.fnRecordsDisplay() - 1) / oSettings._iDisplayLength) - 1) * oSettings._iDisplayLength;
+                fnCallbackDraw(oSettings);
+                return;
+            }
+            oSettings._iDisplayStart = iNewStart;
+            fnCallbackDraw(oSettings);
+        }); /* Take the brutal approach to cancelling text selection */
+        $('label', nPaging).bind('mousedown', function () {
+            return false;
+        });
+        $('label', nPaging).bind('selectstart', function () {
+            return false;
+        });
+    },
+     
+    /*
+     * Function: oPagination.listbox.fnUpdate
+     * Purpose:  Update the listbox element
+     * Returns:  -
+     * Inputs:   object:oSettings - dataTables settings object
+     *             function:fnCallbackDraw - draw function which must be called on update
+     */
+    "fnUpdate": function (oSettings, fnCallbackDraw) {
+        if (!oSettings.aanFeatures.p) {
+            return;
+        }
+        var iPages = Math.ceil((oSettings.fnRecordsDisplay()) / oSettings._iDisplayLength);
+        var iCurrentPage = Math.ceil(oSettings._iDisplayStart / oSettings._iDisplayLength) + 1; /* Loop over each instance of the pager */
+        var an = oSettings.aanFeatures.p;
+        for (var i = 0, iLen = an.length; i < iLen; i++) {
+            var spans = an[i].getElementsByTagName('span');
+            var inputs = an[i].getElementsByTagName('select');
+            var elSel = inputs[0];
+            if(elSel.options.length != iPages) {
+                elSel.options.length = 0; //clear the listbox contents
+                for (var j = 0; j < iPages; j++) { //add the pages
+                    var oOption = document.createElement('option');
+                    oOption.text = j + 1;
+                    oOption.value = j + 1;
+                    try {
+                        elSel.add(oOption, null); // standards compliant; doesn't work in IE
+                    } catch (ex) {
+                        elSel.add(oOption); // IE only
+                    }
+                }
+            }
+          elSel.value = iCurrentPage;
+        }
+    }
+};
 
 /* Set the defaults for DataTables initialisation */
 $.extend( true, DataTable.defaults, {
+	language: {
+        info: "_START_ - _END_ of _TOTAL_",
+        infoFiltered: "",
+        lengthMenu: "Rows per page: _MENU_"
+    },
+    sPaginationType: 'listbox',
 	dom:
 		"<'row'<'col s6 offset-s6'f>>" +
-		"<'row'<'col s12'tr>>" +
-		"<'row'<'col s12 bottom-row'lip>>",
+		"<'row table-body'<'col s12'tr>>" +
+		"<'row'<'col s12 bottom-row'pli<'chev'>>>",
 	renderer: 'bootstrap',
 	oLanguage: {
 		oPaginate: {
 			sNext: '<i class="material-icons text-black">chevron_right</i>',
 			sPrevious: '<i class="material-icons text-black">chevron_left</i>'
+		}
+	},
+	initComplete: function (settings, json) {
+		var prev = document.createElement('a');
+		var next = document.createElement('a');
+
+		prev.className = 'chevron-pagination';
+		next.className = 'chevron-pagination';
+
+		prev.innerHTML = '<i class="material-icons">chevron_left</i>';
+		next.innerHTML = '<i class="material-icons">chevron_right</i>';
+
+		try {
+			settings.nTableWrapper.getElementsByClassName('chev')[0].appendChild(prev);
+			settings.nTableWrapper.getElementsByClassName('chev')[0].appendChild(next);
+		} catch (e) {}
+		
+		prev.onclick = function () {
+			settings.oInstance.fnPageChange('previous');
+		}
+
+		next.onclick = function () {
+			settings.oInstance.fnPageChange('next');
 		}
 	}
 } );

@@ -95,9 +95,13 @@ table.dataTable thead .sorting_desc_disabled:after {
   font-family: 'Glyphicons Halflings';
   opacity: 0.5;
 }
+table.dataTable thead .sorting:hover:after {
+  display: initial;
+}
 table.dataTable thead .sorting:after {
   opacity: 0.2;
   content: "sort_by_alpha";
+  display:none;
   font-family: 'Material Icons';
   font-size: 12px;
   text-rendering: optimizeLegibility;
@@ -249,4 +253,24 @@ div.dataTables_wrapper div.dataTables_filter input {
 
 .dataTables_paginate li a i {
   font-size: 1.5em;
+}
+
+.chev .chevron-pagination {
+  color: #000000;
+}
+
+.chev .chevron-pagination:hover {
+  cursor: pointer;
+}
+
+.chev .chevron-pagination i {
+  vertical-align: middle;
+}
+
+.datatables_wrapper .table-body.row {
+  margin-bottom: 0;
+}
+
+.datatables_wrapper .bottom-row {
+  margin-bottom: 6px;
 }
